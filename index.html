@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Prototipo de página de rifas online: premios, packs de números, pago simulado, consulta de números y tómbola en vivo.">
+<meta property="og:title" content="Rifazo — Gran Rifa N° 27">
+<meta property="og:description" content="Prototipo de página de rifas online. Pagos simulados.">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Rifazo — Gran Rifa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: cartel de rifa — franja amarilla tipo boleto arriba, secciones de compra en columna, boletos con borde perforado */
+:root{
+  --navy:#15173D; --yellow:#FFCE1F; --yellow-deep:#F2B705; --red:#E5322D; --red-ink:#FFFFFF;
+  --bg:#F7F6F2; --card:#FFFFFF; --ink:#15173D; --muted:#5B5E80; --line:#E2E0EA; --soft:#EFEDF6;
+  --ok:#1F9D55; --ok-bg:#E3F6EA;
+  --f-display:"Anton","Impact","Arial Narrow",sans-serif;
+  --f-body:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E0F2B; --card:#181A44; --ink:#F3F1FF; --muted:#A5A7CE; --line:#2C2F66; --soft:#202358;
+  --red:#FF4B43; --ok:#4ED18A; --ok-bg:#16392A; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E0F2B; --card:#181A44; --ink:#F3F1FF; --muted:#A5A7CE; --line:#2C2F66; --soft:#202358;
+  --red:#FF4B43; --ok:#4ED18A; --ok-bg:#16392A; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0}
+h2{font-family:var(--f-display);font-weight:400;font-size:clamp(2rem,4.5vw,2.9rem);line-height:1.02;letter-spacing:.01em;text-transform:uppercase}
+.eyebrow{font-size:.75rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--red)}
+.lead{color:var(--muted);max-width:62ch;margin:.5rem 0 0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--yellow-deep);outline-offset:2px}
+
+/* Header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--navy);color:#fff}
+.top .wrap{display:flex;align-items:center;gap:20px;padding-block:12px}
+.logo{font-family:var(--f-display);font-size:1.7rem;letter-spacing:.02em;color:var(--yellow);text-decoration:none;line-height:1}
+.logo span{color:#fff}
+.top nav{display:flex;gap:18px;margin-left:auto;font-weight:600;font-size:.92rem}
+.top nav a{color:#D9DAF2;text-decoration:none}
+.top nav a:hover{color:var(--yellow)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:.8rem 1.4rem;font-weight:800;cursor:pointer;text-decoration:none;transition:transform .12s ease, filter .12s ease}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.btn:active{transform:none}
+.btn-red{background:var(--red);color:var(--red-ink)}
+.btn-yellow{background:var(--yellow);color:var(--navy)}
+.btn-ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+.top .btn{padding:.55rem 1rem;font-size:.9rem}
+@media (max-width:820px){.top nav{display:none}.top .btn{margin-left:auto}}
+
+/* Ticker */
+.ticker{background:var(--red);color:#fff;font-weight:600;font-size:.88rem}
+.ticker .wrap{display:flex;gap:10px;align-items:center;padding-block:7px;min-height:36px}
+.dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.3}}
+#tickerText{transition:opacity .3s;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Hero */
+.hero{background:var(--yellow);color:var(--navy);position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-45deg,transparent 0 22px,rgba(21,23,61,.045) 22px 44px);pointer-events:none}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:1.25fr 1fr;gap:40px;align-items:center;padding-block:48px 56px}
+.hero .tag{display:inline-block;background:var(--navy);color:var(--yellow);font-weight:800;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;padding:.35rem .75rem;border-radius:6px}
+.hero h1{font-family:var(--f-display);font-weight:400;font-size:clamp(3.2rem,9vw,6.6rem);line-height:.9;text-transform:uppercase;margin:.9rem 0 .6rem;letter-spacing:.005em}
+.hero h1 em{font-style:normal;color:var(--red);display:block}
+.hero p{font-size:1.1rem;font-weight:500;max-width:46ch;margin:0}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.hero .btn-ghost{border-color:var(--navy);color:var(--navy)}
+
+/* Ticket card */
+.ticket{background:#fff;color:var(--navy);border-radius:var(--r);position:relative;box-shadow:0 18px 40px rgba(21,23,61,.22);
+  -webkit-mask:radial-gradient(circle 14px at 0 62%,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 14px at 100% 62%,#0000 98%,#000) right/51% 100% no-repeat;
+          mask:radial-gradient(circle 14px at 0 62%,#0000 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 14px at 100% 62%,#0000 98%,#000) right/51% 100% no-repeat}
+.ticket .t-top{padding:22px 24px 18px}
+.ticket .t-bot{padding:18px 24px 22px;border-top:2px dashed #D6D4E2;margin:0 14px}
+.t-label{font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6A6D90}
+.t-date{font-weight:700;margin-top:2px}
+.countdown{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.countdown div{background:var(--navy);color:#fff;border-radius:10px;text-align:center;padding:10px 4px 8px}
+.countdown b{display:block;font-family:var(--f-mono);font-size:1.7rem;line-height:1;font-variant-numeric:tabular-nums}
+.countdown small{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:#B9BBE0}
+.bar{height:14px;background:#ECEAF3;border-radius:999px;overflow:hidden;margin:10px 0 6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--red),#FF7A2F);border-radius:999px;width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.bar-meta{display:flex;justify-content:space-between;font-size:.85rem;font-weight:600;color:#4B4E72}
+.price-line{display:flex;align-items:baseline;justify-content:space-between;margin-top:14px}
+.price-line b{font-family:var(--f-display);font-weight:400;font-size:2.2rem;line-height:1}
+@media (max-width:860px){.hero .wrap{grid-template-columns:1fr;gap:28px;padding-block:32px 40px}}
+
+/* Sections */
+section.block{padding-block:64px}
+.sec-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+
+/* Prizes */
+.prizes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.prize{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:6px}
+.prize .pos{font-family:var(--f-display);font-size:2.6rem;line-height:1;color:var(--red)}
+.prize h3{font-size:1.15rem;font-weight:800}
+.prize .val{color:var(--muted);font-size:.9rem}
+.prize.main{grid-column:span 3;background:var(--navy);color:#fff;border:0;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px}
+.prize.main .pos{color:var(--yellow);font-size:4.4rem}
+.prize.main h3{font-family:var(--f-display);font-weight:400;font-size:clamp(1.8rem,4vw,2.6rem);text-transform:uppercase;line-height:1}
+.prize.main .val{color:#BFC1E6}
+.prize.main .chip{background:var(--yellow);color:var(--navy);font-weight:800;border-radius:999px;padding:.4rem .9rem;font-size:.85rem;white-space:nowrap}
+@media (max-width:760px){.prizes{grid-template-columns:1fr}.prize.main{grid-column:auto;grid-template-columns:1fr;gap:8px}}
+
+/* Instant numbers */
+.instant{margin-top:28px;background:var(--soft);border-radius:var(--r);padding:20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:20px;align-items:center}
+.instant h3{font-size:1.1rem;font-weight:800}
+.instant p{margin:.3rem 0 0;color:var(--muted);font-size:.92rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.num-chip{font-family:var(--f-mono);font-weight:700;background:var(--card);border:2px solid var(--line);border-radius:8px;padding:.35rem .6rem;font-size:.95rem}
+.num-chip.won{text-decoration:line-through;color:var(--muted);border-style:dashed}
+.num-chip.mine{background:var(--yellow);color:var(--navy);border-color:var(--yellow-deep)}
+@media (max-width:760px){.instant{grid-template-columns:1fr}}
+
+/* Buy */
+.buy{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:start}
+.packs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pack{position:relative;background:var(--card);border:2px solid var(--line);border-radius:var(--r);padding:18px 14px 14px;text-align:center;cursor:pointer;transition:border-color .15s, transform .15s}
+.pack:hover{transform:translateY(-2px)}
+.pack[aria-pressed="true"]{border-color:var(--red);box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 18%,transparent)}
+.pack .q{font-family:var(--f-display);font-size:2.6rem;line-height:1}
+.pack .u{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pack .p{font-weight:800;font-size:1.1rem;margin-top:8px}
+.pack .s{font-size:.8rem;color:var(--ok);font-weight:700;min-height:1.2em}
+.pack .flag{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.2rem .55rem;border-radius:999px;white-space:nowrap}
+@media (max-width:560px){.packs{grid-template-columns:repeat(2,1fr)}}
+.custom{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;background:var(--card);border:1px dashed var(--line);border-radius:var(--r);padding:12px 14px}
+.stepper{display:flex;align-items:center;border:2px solid var(--line);border-radius:999px;overflow:hidden}
+.stepper button{background:none;border:0;width:40px;height:40px;font-size:1.3rem;font-weight:700;cursor:pointer}
+.stepper input{width:64px;text-align:center;border:0;background:transparent;font-family:var(--f-mono);font-weight:700;font-size:1.05rem}
+.summary{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 80px)}
+.summary .row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;color:var(--muted)}
+.summary .row b{color:var(--ink);font-variant-numeric:tabular-nums}
+.summary .total{border-top:2px dashed var(--line);margin-top:8px;padding-top:12px;display:flex;justify-content:space-between;align-items:baseline}
+.summary .total b{font-family:var(--f-display);font-weight:400;font-size:2.4rem}
+.summary .btn{width:100%;margin-top:14px}
+.pay-logos{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.pay-logos span{font-size:.72rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:.2rem .45rem}
+.odds{font-size:.82rem;color:var(--muted);margin-top:10px;text-align:center}
+@media (max-width:860px){.buy{grid-template-columns:1fr}.summary{position:static}}
+
+/* Lookup */
+.lookup{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:.82rem;font-weight:700}
+.field input,.field select{border:2px solid var(--line);background:var(--card);border-radius:10px;padding:.7rem .8rem;width:100%;min-width:0}
+.field input:focus,.field select:focus{border-color:var(--red);outline:none}
+.field .err{color:var(--red);font-size:.78rem;min-height:1em}
+.lookup .field{flex:1 1 260px}
+.lookup .btn{align-self:end;margin-bottom:1.3em}
+.results{margin-top:14px;display:grid;gap:12px}
+.order{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.order header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.88rem;color:var(--muted);margin-bottom:10px}
+.order header b{color:var(--ink)}
+.empty{color:var(--muted);background:var(--soft);border-radius:var(--r);padding:16px}
+
+/* Draw machine */
+.draw{background:var(--navy);color:#fff;border-radius:22px;padding:28px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:28px;align-items:center}
+.draw h2{color:var(--yellow)}
+.draw p{color:#C5C7EA}
+.draw .admin{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border:1px solid #4A4D8A;color:#C5C7EA;border-radius:6px;padding:.2rem .5rem;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.stats div{background:#202358;border-radius:12px;padding:12px}
+.stats b{display:block;font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.stats small{color:#A5A7CE;font-size:.75rem}
+.machine{background:#0B0C24;border-radius:18px;padding:22px;text-align:center;border:3px solid var(--yellow)}
+.reels{display:flex;justify-content:center;gap:8px}
+.reel{width:min(15vw,72px);height:96px;background:#fff;color:var(--navy);border-radius:10px;overflow:hidden;position:relative;box-shadow:inset 0 10px 14px rgba(0,0,0,.18),inset 0 -10px 14px rgba(0,0,0,.18)}
+.reel .strip{position:absolute;left:0;right:0;top:0;font-family:var(--f-display);font-size:3.4rem;line-height:96px}
+.reel .strip span{display:block;height:96px}
+.winner{min-height:3.4em;margin-top:16px;font-weight:600}
+.winner b{color:var(--yellow)}
+.machine .btn{margin-top:6px}
+@media (max-width:860px){.draw{grid-template-columns:1fr;padding:20px}}
+
+/* Winners */
+.winners{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.w{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.w .rifa{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.w .n{font-family:var(--f-mono);font-weight:700;font-size:1.3rem;margin:6px 0 2px}
+.w .who{font-weight:700}
+.w .what{color:var(--muted);font-size:.88rem}
+@media (max-width:900px){.winners{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:480px){.winners{grid-template-columns:1fr}}
+
+/* Steps + FAQ */
+.how{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:s}
+.how div{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.how div::before{content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--yellow);color:var(--navy);font-family:var(--f-display);font-size:1.2rem;margin-bottom:10px}
+.how b{display:block;margin-bottom:4px}
+.how span{color:var(--muted);font-size:.92rem}
+@media (max-width:860px){.how{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:480px){.how{grid-template-columns:1fr}}
+.faq{display:grid;gap:10px;max-width:820px}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+.faq summary{font-weight:700;cursor:pointer}
+.faq p{color:var(--muted);margin:.6rem 0 0}
+
+footer{background:var(--navy);color:#B9BBE0;font-size:.85rem}
+footer .wrap{padding-block:32px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+footer .logo{font-size:1.4rem}
+.demo-note{background:var(--yellow);color:var(--navy);font-weight:700;border-radius:8px;padding:.5rem .8rem;max-width:520px}
+
+/* Checkout overlay */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(10,11,32,.62);display:grid;place-items:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet{background:var(--card);color:var(--ink);border-radius:18px;width:min(560px,100%);max-height:100%;overflow:auto;box-shadow:0 30px 60px rgba(0,0,0,.35)}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
+.sheet-head h3{font-size:1.15rem;font-weight:800}
+.x{background:none;border:0;font-size:1.6rem;line-height:1;cursor:pointer;color:var(--muted)}
+.sheet-body{padding:20px 22px}
+.steps{display:flex;gap:6px;margin-bottom:16px}
+.steps i{flex:1;height:5px;border-radius:5px;background:var(--line)}
+.steps i.on{background:var(--red)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid2 .full{grid-column:1/-1}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:.88rem;color:var(--muted);margin-top:6px}
+.check input{margin-top:3px;width:18px;height:18px;flex:none}
+.mini-sum{display:flex;justify-content:space-between;background:var(--soft);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-weight:600}
+.webpay{border:2px solid var(--line);border-radius:14px;padding:18px;text-align:center}
+.webpay .amt{font-family:var(--f-display);font-size:2.6rem;line-height:1.1}
+.spinner{width:46px;height:46px;border-radius:50%;border:5px solid var(--line);border-top-color:var(--red);animation:spin .8s linear infinite;margin:18px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.success{text-align:center}
+.success .ok{width:60px;height:60px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-size:2rem;font-weight:800;margin:0 auto 10px}
+.my-nums{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:14px 0;max-height:220px;overflow:auto}
+.instant-win{background:var(--yellow);color:var(--navy);border-radius:12px;padding:12px;font-weight:800;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#inicio">RIFA<span>ZO</span></a>
+    <nav aria-label="Secciones">
+      <a href="#premios">Premios</a>
+      <a href="#comprar">Comprar</a>
+      <a href="#mis-numeros">Mis números</a>
+      <a href="#ganadores">Ganadores</a>
+      <a href="#preguntas">Preguntas</a>
+    </nav>
+    <a class="btn btn-yellow" href="#comprar">Comprar números</a>
+  </div>
+</header>
+
+<div class="ticker" role="status" aria-live="polite">
+  <div class="wrap"><span class="dot"></span><span id="tickerText">Camila R. de Rancagua compró 25 números</span></div>
+</div>
+
+<section class="hero" id="inicio">
+  <div class="wrap">
+    <div>
+      <span class="tag">Gran Rifa N° 27 · Navidad</span>
+      <h1>Toyota Hilux 0&nbsp;km <em>+ $5 millones</em></h1>
+      <p>Cada número cuesta $1.000. Sorteo en vivo por Instagram y YouTube, ante notario, el sábado 20 de diciembre.</p>
+      <div class="cta">
+        <a class="btn btn-red" href="#comprar">Quiero mis números</a>
+        <a class="btn btn-ghost" href="#premios">Ver todos los premios</a>
+      </div>
+    </div>
+
+    <div class="ticket" aria-label="Estado de la rifa">
+      <div class="t-top">
+        <div class="t-label">El sorteo es en</div>
+        <div class="countdown" id="countdown">
+          <div><b id="cd-d">00</b><small>días</small></div>
+          <div><b id="cd-h">00</b><small>horas</small></div>
+          <div><b id="cd-m">00</b><small>min</small></div>
+          <div><b id="cd-s">00</b><small>seg</small></div>
+        </div>
+        <div class="t-date" style="margin-top:10px">Sáb 20 dic · 21:00 hrs · En vivo</div>
+      </div>
+      <div class="t-bot">
+        <div class="t-label">Números vendidos</div>
+        <div class="bar"><i id="bar"></i></div>
+        <div class="bar-meta"><span class="mono" id="soldTxt">68.412 de 100.000</span><span id="pctTxt">68%</span></div>
+        <div class="price-line"><span class="t-label">Valor por número</span><b>$1.000</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="premios">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="eyebrow">Premios de esta rifa</div>
+        <h2>Tres premios mayores</h2>
+        <p class="lead">Con un mismo número participas por todos. Se sortean en orden, del tercero al primero.</p>
+      </div>
+    </div>
+    <div class="prizes">
+      <article class="prize main">
+        <div class="pos">1°</div>
+        <div>
+          <h3>Toyota Hilux 2.4 DX 4x4 + $5.000.000</h3>
+          <div class="val">Valor comercial referencial $38.990.000 · patente y transferencia incluidas</div>
+        </div>
+        <span class="chip">Premio mayor</span>
+      </article>
+      <article class="prize">
+        <div class="pos">2°</div>
+        <h3>Moto Honda CB190R</h3>
+        <div class="val">Valor $2.890.000 · con casco y SOAP</div>
+      </article>
+      <article class="prize">
+        <div class="pos">3°</div>
+        <h3>iPhone 17 Pro 256 GB</h3>
+        <div class="val">Valor $1.399.990 · sellado</div>
+      </article>
+      <article class="prize">
+        <div class="pos">+10</div>
+        <h3>$100.000 en transferencia</h3>
+        <div class="val">Diez números al azar durante la transmisión</div>
+      </article>
+    </div>
+
+    <div class="instant">
+      <div>
+        <h3>Números premiados al instante</h3>
+        <p>Si al comprar te sale uno de estos números, ganas $50.000 en el acto. Los tachados ya fueron entregados.</p>
+      </div>
+      <div class="chips" id="instantChips"></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="comprar" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="eyebrow">Compra tus números</div>
+        <h2>Elige un pack</h2>
+        <p class="lead">Los números se asignan al azar y te llegan por correo y WhatsApp apenas se confirma el pago.</p>
+      </div>
+    </div>
+    <div class="buy">
+      <div>
+        <div class="packs" id="packs"></div>
+        <div class="custom">
+          <span style="font-weight:700">Otra cantidad</span>
+          <div class="stepper">
+            <button type="button" id="minus" aria-label="Quitar un número">−</button>
+            <input id="qty" type="number" min="1" max="500" value="25" inputmode="numeric" aria-label="Cantidad de números">
+            <button type="button" id="plus" aria-label="Agregar un número">+</button>
+          </div>
+          <span style="color:var(--muted);font-size:.85rem">Máximo 500 por persona</span>
+        </div>
+      </div>
+      <aside class="summary" aria-label="Resumen de compra">
+        <div class="t-label">Tu compra</div>
+        <div class="row"><span>Números</span><b id="sumQty">25</b></div>
+        <div class="row"><span>Precio normal</span><b id="sumBase">$25.000</b></div>
+        <div class="row"><span>Descuento pack</span><b id="sumDisc" style="color:var(--ok)">−$5.000</b></div>
+        <div class="total"><span style="font-weight:700">Total</span><b id="sumTotal">$20.000</b></div>
+        <button class="btn btn-red" id="goPay" type="button">Continuar al pago</button>
+        <div class="pay-logos"><span>Webpay</span><span>Mercado Pago</span><span>Transferencia</span><span>Mach</span></div>
+        <div class="odds" id="odds">Con 25 números tienes 1 en 4.000 opciones de ganar el premio mayor.</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="como" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head"><div><div class="eyebrow">Así funciona</div><h2>Cuatro pasos</h2></div></div>
+    <div class="how">
+      <div><b>Elige tu pack</b><span>Mientras más números, más opciones y mejor precio por número.</span></div>
+      <div><b>Paga seguro</b><span>Webpay, Mercado Pago, Mach o transferencia. Pago confirmado al instante.</span></div>
+      <div><b>Recibe tus números</b><span>Te llegan por correo y WhatsApp. También los ves en “Mis números”.</span></div>
+      <div><b>Mira el sorteo</b><span>En vivo, ante notario, con tómbola física y transmisión pública.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="mis-numeros" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <div class="eyebrow">Consulta</div>
+        <h2>Mis números</h2>
+        <p class="lead">Busca con tu RUT o correo. En este prototipo aparecen las compras que hiciste desde este navegador.</p>
+      </div>
+    </div>
+    <form class="lookup" id="lookupForm" novalidate>
+      <div class="field"><label for="lookupInput">RUT o correo</label><input id="lookupInput" placeholder="12.345.678-5 o tu@correo.cl" autocomplete="off"><span class="err" id="lookupErr"></span></div>
+      <button class="btn btn-red" type="submit">Buscar</button>
+    </form>
+    <div class="results" id="lookupResults"></div>
+  </div>
+</section>
+
+<section class="block" id="sorteo" style="padding-top:0">
+  <div class="wrap">
+    <div class="draw">
+      <div>
+        <span class="admin">Vista del organizador</span>
+        <h2>Tómbola digital</h2>
+        <p>Así se vería el sorteo en la transmisión: cinco cilindros, un dígito por vez, sobre los números vendidos. Prueba cómo queda en pantalla.</p>
+        <div class="stats">
+          <div><b id="stRaised">$61.570.800</b><small>Recaudado</small></div>
+          <div><b id="stBuyers">7.940</b><small>Compradores</small></div>
+          <div><b id="stAvg">8,6</b><small>Números por persona</small></div>
+        </div>
+      </div>
+      <div class="machine">
+        <div class="reels" id="reels"></div>
+        <div class="winner" id="winner" aria-live="polite">Presiona girar para sacar un número ganador.</div>
+        <button class="btn btn-yellow" id="spin" type="button">Girar la tómbola</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="ganadores" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Rifas anteriores</div><h2>Ganadores</h2></div>
+      <span style="color:var(--muted);font-size:.9rem">Datos de ejemplo</span>
+    </div>
+    <div class="winners">
+      <div class="w"><div class="rifa">Rifa N° 26 · Oct</div><div class="n">07.219</div><div class="who">Javiera M. · Talca</div><div class="what">Suzuki Swift 0 km</div></div>
+      <div class="w"><div class="rifa">Rifa N° 25 · Sep</div><div class="n">58.004</div><div class="who">Matías C. · Antofagasta</div><div class="what">$10.000.000</div></div>
+      <div class="w"><div class="rifa">Rifa N° 24 · Ago</div><div class="n">33.871</div><div class="who">Fernanda P. · Puerto Montt</div><div class="what">Moto Yamaha FZ</div></div>
+      <div class="w"><div class="rifa">Rifa N° 23 · Jul</div><div class="n">90.126</div><div class="who">Luis A. · La Florida</div><div class="what">PlayStation 5 + TV 65”</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="preguntas" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head"><div><div class="eyebrow">Dudas</div><h2>Preguntas frecuentes</h2></div></div>
+    <div class="faq">
+      <details open><summary>¿Cómo se hace el sorteo?</summary><p>En vivo por Instagram y YouTube, con un notario presente que levanta acta. Se saca un dígito por cilindro hasta formar el número de cinco cifras. Si el número no se vendió, se repite el giro.</p></details>
+      <details><summary>¿Cuándo recibo mis números?</summary><p>Apenas se confirma el pago, normalmente en menos de un minuto. Llegan por correo y WhatsApp y quedan disponibles en “Mis números”.</p></details>
+      <details><summary>¿Qué pasa si no se venden todos los números?</summary><p>El sorteo se hace igual en la fecha anunciada. Solo participan los números vendidos.</p></details>
+      <details><summary>¿Cómo cobro si gano?</summary><p>Te contactamos al teléfono y correo registrados. Debes presentar tu cédula y el comprobante. El vehículo se entrega con patente y transferencia pagadas.</p></details>
+      <details><summary>¿Quién puede participar?</summary><p>Mayores de 18 años con RUT chileno. Las condiciones completas están en las bases legales de la rifa.</p></details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="logo">RIFA<span>ZO</span></div>
+      <div style="margin-top:6px">Bases legales · Política de privacidad · Contacto</div>
+    </div>
+    <div class="demo-note">Prototipo de demostración. Los pagos son simulados y no se cobra nada.</div>
+  </div>
+</footer>
+
+<!-- Checkout -->
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h3 id="sheetTitle">Tus datos</h3><button class="x" id="closeSheet" aria-label="Cerrar">×</button></div>
+    <div class="sheet-body">
+      <div class="steps"><i class="on" id="st1"></i><i id="st2"></i><i id="st3"></i></div>
+
+      <form id="stepData" novalidate>
+        <div class="mini-sum"><span id="ms-q">25 números</span><span id="ms-t">$20.000</span></div>
+        <div class="grid2">
+          <div class="field full"><label for="f-name">Nombre y apellido</label><input id="f-name" autocomplete="name" value="Camila Rojas"><span class="err"></span></div>
+          <div class="field"><label for="f-rut">RUT</label><input id="f-rut" placeholder="12.345.678-5" value="12.345.678-5"><span class="err"></span></div>
+          <div class="field"><label for="f-phone">WhatsApp</label><input id="f-phone" inputmode="tel" value="+56 9 8765 4321"><span class="err"></span></div>
+          <div class="field full"><label for="f-mail">Correo</label><input id="f-mail" type="email" autocomplete="email" value="camila.rojas@ejemplo.cl"><span class="err"></span></div>
+          <div class="field full"><label for="f-region">Región</label>
+            <select id="f-region">
+              <option>Arica y Parinacota</option><option>Tarapacá</option><option>Antofagasta</option><option>Atacama</option><option>Coquimbo</option><option>Valparaíso</option><option selected>Metropolitana</option><option>O’Higgins</option><option>Maule</option><option>Ñuble</option><option>Biobío</option><option>La Araucanía</option><option>Los Ríos</option><option>Los Lagos</option><option>Aysén</option><option>Magallanes</option>
+            </select><span class="err"></span></div>
+        </div>
+        <label class="check"><input type="checkbox" id="f-terms"> <span>Soy mayor de 18 años y acepto las bases legales de la rifa.</span></label>
+        <span class="err" id="termsErr" style="color:var(--red);font-size:.78rem"></span>
+        <button class="btn btn-red" type="submit" style="width:100%;margin-top:14px">Ir a pagar</button>
+        <p style="font-size:.78rem;color:var(--muted);margin:.6rem 0 0">Datos de ejemplo precargados. Puedes cambiarlos.</p>
+      </form>
+
+      <div id="stepPay" hidden>
+        <div class="webpay">
+          <div class="t-label">Pago simulado · Webpay</div>
+          <div class="amt" id="payAmt">$20.000</div>
+          <div style="color:var(--muted);font-size:.9rem" id="payDesc">25 números · Gran Rifa N° 27</div>
+          <div id="payIdle">
+            <button class="btn btn-red" id="confirmPay" type="button" style="width:100%;margin-top:16px">Simular pago aprobado</button>
+            <button class="btn btn-ghost" id="backData" type="button" style="width:100%;margin-top:8px">Volver</button>
+          </div>
+          <div id="payBusy" hidden><div class="spinner"></div><div style="color:var(--muted)">Confirmando pago…</div></div>
+        </div>
+      </div>
+
+      <div id="stepDone" class="success" hidden>
+        <div class="ok">✓</div>
+        <h3 style="font-size:1.3rem;font-weight:800">¡Listo, ya estás participando!</h3>
+        <p style="color:var(--muted);margin:.3rem 0 0" id="doneMsg"></p>
+        <div class="my-nums" id="doneNums"></div>
+        <div id="instantWin"></div>
+        <button class="btn btn-red" id="doneClose" type="button" style="width:100%">Ver mis números</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const CLP = n => new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n);
+  const fmt = n => new Intl.NumberFormat('es-CL').format(n);
+  const pad5 = n => String(n).padStart(5,'0');
+  const dotted = s => s.slice(0,2)+'.'+s.slice(2);
+  const $ = id => document.getElementById(id);
+
+  const TOTAL = 100000, PRICE = 1000;
+  let sold = 68412;
+  const DRAW = new Date('2026-12-20T21:00:00-03:00').getTime();
+  const INSTANT = [{n:'04521',won:true},{n:'11807',won:true},{n:'23390',won:false},{n:'38745',won:true},{n:'49012',won:false},{n:'56128',won:false},{n:'67734',won:false},{n:'72266',won:true},{n:'81459',won:false},{n:'99301',won:false}];
+  const PACKS = [
+    {q:1,  total:1000},
+    {q:5,  total:4500},
+    {q:10, total:8500},
+    {q:25, total:20000, flag:'El más comprado'},
+    {q:50, total:37500},
+    {q:100,total:70000, flag:'Mejor precio'}
+  ];
+
+  // Storage (per-browser demo)
+  const KEY='rifazo_compras_v1';
+  function loadOrders(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+  function saveOrders(o){ try{ localStorage.setItem(KEY,JSON.stringify(o)); }catch(e){} }
+  let orders = loadOrders();
+  const myNumbers = () => new Set(orders.flatMap(o=>o.nums));
+
+  // Countdown
+  function tick(){
+    let s = Math.max(0, Math.floor((DRAW-Date.now())/1000));
+    const d=Math.floor(s/86400); s%=86400; const h=Math.floor(s/3600); s%=3600; const m=Math.floor(s/60); s%=60;
+    $('cd-d').textContent=String(d).padStart(2,'0'); $('cd-h').textContent=String(h).padStart(2,'0');
+    $('cd-m').textContent=String(m).padStart(2,'0'); $('cd-s').textContent=String(s).padStart(2,'0');
+  }
+  tick(); setInterval(tick,1000);
+
+  // Progress
+  function renderProgress(){
+    const pct = sold/TOTAL*100;
+    $('bar').style.width = pct.toFixed(1)+'%';
+    $('soldTxt').textContent = fmt(sold)+' de '+fmt(TOTAL);
+    $('pctTxt').textContent = Math.floor(pct)+'%';
+    $('stRaised').textContent = CLP(sold*900);
+  }
+  requestAnimationFrame(()=>requestAnimationFrame(renderProgress));
+
+  // Ticker (ejemplos)
+  const names=['Camila R.','Diego S.','Valentina P.','Joaquín M.','Francisca L.','Benjamín T.','Antonia V.','Tomás G.','Catalina F.','Ignacio H.'];
+  const cities=['Rancagua','Temuco','Viña del Mar','Maipú','Concepción','Iquique','La Serena','Osorno','Puente Alto','Chillán'];
+  const qs=[5,10,25,25,50,10,100,5];
+  setInterval(()=>{
+    const t=$('tickerText'); t.style.opacity=0;
+    setTimeout(()=>{
+      const q=qs[Math.floor(Math.random()*qs.length)];
+      t.textContent=`${names[Math.floor(Math.random()*names.length)]} de ${cities[Math.floor(Math.random()*cities.length)]} compró ${q} números`;
+      t.style.opacity=1; sold=Math.min(TOTAL,sold+q); renderProgress();
+    },300);
+  },4200);
+
+  // Instant chips
+  function renderInstant(){
+    const mine=myNumbers();
+    $('instantChips').innerHTML = INSTANT.map(x=>`<span class="num-chip ${x.won?'won':''} ${mine.has(x.n)?'mine':''}">${dotted(x.n)}</span>`).join('');
+  }
+  renderInstant();
+
+  // Packs
+  let qty=25;
+  function priceFor(q){
+    const exact = PACKS.find(p=>p.q===q); if(exact) return exact.total;
+    // tramos de descuento para cantidades libres
+    const per = q>=100?700 : q>=50?750 : q>=25?800 : q>=10?850 : q>=5?900 : 1000;
+    return q*per;
+  }
+  $('packs').innerHTML = PACKS.map(p=>{
+    const save=p.q*PRICE-p.total;
+    return `<button type="button" class="pack" data-q="${p.q}" aria-pressed="false">
+      ${p.flag?`<span class="flag">${p.flag}</span>`:''}
+      <div class="q">${p.q}</div><div class="u">${p.q===1?'número':'números'}</div>
+      <div class="p">${CLP(p.total)}</div><div class="s">${save>0?'Ahorras '+CLP(save):'&nbsp;'}</div></button>`;
+  }).join('');
+  $('packs').addEventListener('click',e=>{ const b=e.target.closest('.pack'); if(b){ setQty(+b.dataset.q); } });
+  $('minus').onclick=()=>setQty(qty-1);
+  $('plus').onclick=()=>setQty(qty+1);
+  $('qty').addEventListener('input',e=>{ const v=parseInt(e.target.value,10); if(!isNaN(v)) setQty(v,true); });
+  $('qty').addEventListener('blur',()=>{ $('qty').value=qty; });
+
+  function setQty(v,fromInput){
+    qty=Math.max(1,Math.min(500,v||1));
+    if(!fromInput) $('qty').value=qty;
+    document.querySelectorAll('.pack').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.q===qty)));
+    const total=priceFor(qty), base=qty*PRICE;
+    $('sumQty').textContent=fmt(qty); $('sumBase').textContent=CLP(base);
+    $('sumDisc').textContent= base-total>0 ? '−'+CLP(base-total) : CLP(0);
+    $('sumTotal').textContent=CLP(total);
+    const remaining=TOTAL; const odds=Math.round(remaining/qty);
+    $('odds').textContent=`Con ${fmt(qty)} ${qty===1?'número':'números'} tienes 1 en ${fmt(odds)} opciones de ganar el premio mayor.`;
+  }
+  setQty(25);
+
+  // RUT
+  function cleanRut(r){ return (r||'').replace(/[^0-9kK]/g,'').toUpperCase(); }
+  function validRut(r){
+    const c=cleanRut(r); if(c.length<8||c.length>9) return false;
+    const body=c.slice(0,-1), dv=c.slice(-1); let sum=0,mul=2;
+    for(let i=body.length-1;i>=0;i--){ sum+=+body[i]*mul; mul=mul===7?2:mul+1; }
+    const res=11-(sum%11); const exp=res===11?'0':res===10?'K':String(res);
+    return exp===dv;
+  }
+  function formatRut(r){ const c=cleanRut(r); if(c.length<2) return r; const b=c.slice(0,-1), dv=c.slice(-1); return b.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+'-'+dv; }
+  $('f-rut').addEventListener('blur',e=>{ if(cleanRut(e.target.value).length>=8) e.target.value=formatRut(e.target.value); });
+
+  // Checkout flow
+  const overlay=$('overlay');
+  function showStep(n){
+    $('stepData').hidden=n!==1; $('stepPay').hidden=n!==2; $('stepDone').hidden=n!==3;
+    ['st1','st2','st3'].forEach((id,i)=>$(id).classList.toggle('on',i<n));
+    $('sheetTitle').textContent = n===1?'Tus datos': n===2?'Pago':'Compra confirmada';
+  }
+  $('goPay').onclick=()=>{
+    $('ms-q').textContent=fmt(qty)+(qty===1?' número':' números'); $('ms-t').textContent=CLP(priceFor(qty));
+    showStep(1); overlay.hidden=false; $('f-name').focus();
+  };
+  function closeSheet(){ overlay.hidden=true; }
+  $('closeSheet').onclick=closeSheet;
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) closeSheet(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !overlay.hidden) closeSheet(); });
+
+  function setErr(id,msg){ const el=$(id).parentElement.querySelector('.err'); if(el) el.textContent=msg||''; }
+  $('stepData').addEventListener('submit',e=>{
+    e.preventDefault(); let ok=true;
+    const name=$('f-name').value.trim(), rut=$('f-rut').value, mail=$('f-mail').value.trim(), phone=$('f-phone').value.replace(/\D/g,'');
+    setErr('f-name', name.split(/\s+/).length<2 ? 'Escribe nombre y apellido.' : ''); if(name.split(/\s+/).length<2) ok=false;
+    if(!validRut(rut)){ setErr('f-rut','El RUT no es válido. Revisa el dígito verificador.'); ok=false; } else setErr('f-rut','');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){ setErr('f-mail','Revisa el correo.'); ok=false; } else setErr('f-mail','');
+    if(phone.length<9){ setErr('f-phone','Escribe un celular de 9 dígitos.'); ok=false; } else setErr('f-phone','');
+    if(!$('f-terms').checked){ $('termsErr').textContent='Debes aceptar las bases para participar.'; ok=false; } else $('termsErr').textContent='';
+    if(!ok) return;
+    $('payAmt').textContent=CLP(priceFor(qty)); $('payDesc').textContent=`${fmt(qty)} ${qty===1?'número':'números'} · Gran Rifa N° 27`;
+    $('payIdle').hidden=false; $('payBusy').hidden=true; showStep(2);
+  });
+  $('backData').onclick=()=>showStep(1);
+
+  function assignNumbers(q){
+    const taken=myNumbers(), out=new Set();
+    while(out.size<q){ const n=pad5(Math.floor(Math.random()*TOTAL)); if(!taken.has(n)) out.add(n); }
+    return [...out].sort();
+  }
+  $('confirmPay').onclick=()=>{
+    $('payIdle').hidden=true; $('payBusy').hidden=false;
+    setTimeout(()=>{
+      const nums=assignNumbers(qty);
+      const order={id:'RZ-'+Math.floor(100000+Math.random()*899999), name:$('f-name').value.trim(), rut:formatRut($('f-rut').value), mail:$('f-mail').value.trim().toLowerCase(), qty, total:priceFor(qty), date:new Date().toISOString(), nums};
+      orders.unshift(order); saveOrders(orders); sold=Math.min(TOTAL,sold+qty); renderProgress(); renderInstant();
+      $('doneMsg').textContent=`Orden ${order.id}. Te enviamos tus ${fmt(qty)} ${qty===1?'número':'números'} a ${order.mail}.`;
+      const hits=nums.filter(n=>INSTANT.some(x=>x.n===n && !x.won));
+      $('doneNums').innerHTML=nums.map(n=>`<span class="num-chip ${hits.includes(n)?'mine':''}">${dotted(n)}</span>`).join('');
+      $('instantWin').innerHTML = hits.length ? `<div class="instant-win">¡Número premiado al instante! Ganaste ${CLP(50000*hits.length)}.</div>` : '';
+      $('lookupInput').value=order.rut;
+      showStep(3);
+    },1600);
+  };
+  $('doneClose').onclick=()=>{ closeSheet(); runLookup(); location.hash='mis-numeros'; };
+
+  // Lookup
+  function runLookup(){
+    const q=$('lookupInput').value.trim(); const res=$('lookupResults');
+    if(!q){ $('lookupErr').textContent='Escribe tu RUT o correo.'; res.innerHTML=''; return; }
+    $('lookupErr').textContent='';
+    const isMail=q.includes('@'); const key=isMail?q.toLowerCase():cleanRut(q);
+    const found=orders.filter(o=> isMail ? o.mail===key : cleanRut(o.rut)===key);
+    if(!found.length){ res.innerHTML=`<div class="empty">No encontramos compras con ese dato en este navegador. Compra un pack para probar el flujo completo.</div>`; return; }
+    const inst=new Set(INSTANT.filter(x=>!x.won).map(x=>x.n));
+    res.innerHTML=found.map(o=>`<article class="order">
+      <header><span><b>${o.id}</b> · ${new Date(o.date).toLocaleString('es-CL',{dateStyle:'medium',timeStyle:'short'})}</span><span><b>${fmt(o.qty)}</b> números · <b>${CLP(o.total)}</b></span></header>
+      <div class="chips">${o.nums.map(n=>`<span class="num-chip ${inst.has(n)?'mine':''}">${dotted(n)}</span>`).join('')}</div></article>`).join('');
+  }
+  $('lookupForm').addEventListener('submit',e=>{ e.preventDefault(); runLookup(); });
+
+  // Draw machine
+  const reels=$('reels');
+  reels.innerHTML=Array.from({length:5},()=>`<div class="reel"><div class="strip">${Array.from({length:40},(_,i)=>`<span>${i%10}</span>`).join('')}</div></div>`).join('');
+  const strips=[...reels.querySelectorAll('.strip')];
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('spin').onclick=()=>{
+    const btn=$('spin'); btn.disabled=true; $('winner').textContent='Girando…';
+    // Si compraste, a veces sale uno de tus números (para mostrar el caso "¡es tuyo!")
+    const mine=[...myNumbers()];
+    const num = mine.length && Math.random()<0.35 ? mine[Math.floor(Math.random()*mine.length)] : pad5(Math.floor(Math.random()*sold));
+    const digits=num.split('').map(Number);
+    strips.forEach((s,i)=>{
+      s.style.transition='none'; s.style.transform='translateY(0)'; s.offsetHeight;
+      const target=(30+digits[i])*96;
+      s.style.transition= reduce?'none':`transform ${1.4+i*0.55}s cubic-bezier(.15,.85,.25,1)`;
+      s.style.transform=`translateY(-${target}px)`;
+    });
+    setTimeout(()=>{
+      const isMine=myNumbers().has(num);
+      const who = isMine ? 'tú' : `${names[Math.floor(Math.random()*names.length)]} de ${cities[Math.floor(Math.random()*cities.length)]}`;
+      $('winner').innerHTML = isMine
+        ? `Número ganador <b class="mono">${dotted(num)}</b><br>¡Es uno de tus números!`
+        : `Número ganador <b class="mono">${dotted(num)}</b><br>Comprado por ${who}`;
+      btn.disabled=false; btn.textContent='Girar otra vez';
+    }, reduce?50:(1.4+4*0.55)*1000+100);
+  };
+
+  if(orders.length){ $('lookupInput').value=orders[0].rut; }
+})();
+</script>
+</html>
